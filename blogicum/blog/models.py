@@ -1,0 +1,110 @@
+from core.models import PublishedModel
+from django.contrib.auth import get_user_model
+from django.db import models
+from django.utils import timezone
+
+User = get_user_model()
+
+
+class Category(PublishedModel):
+    title = models.CharField(
+        'Заголовок',
+        max_length=256,
+        blank=False
+    )
+    description = models.TextField(
+        verbose_name='Описание',
+        blank=False
+    )
+    slug = models.SlugField(
+        'Идентификатор',
+        max_length=64,
+        unique=True,
+        help_text='Идентификатор страницы для URL; '
+                  'разрешены символы латиницы, '
+                  'цифры, дефис и подчёркивание.'
+    )
+
+    class Meta:
+        verbose_name = 'категория'
+        verbose_name_plural = 'Категории'
+
+    def __str__(self):
+        return self.title
+
+
+class Location(PublishedModel):
+    name = models.CharField(
+        'Название места',
+        max_length=256,
+        blank=False
+    )
+
+    class Meta:
+        verbose_name = 'местоположение'
+        verbose_name_plural = 'Местоположения'
+
+    def __str__(self):
+        return self.name21
+
+
+class PostQueryset(models.QuerySet):
+    def published(self):
+        return self.filter(
+            is_published=True,
+            pub_date__lt=timezone.now(),
+            category__is_published=True
+        ).select_related('author', 'category', 'location')
+
+
+class PublishedPostManager(models.Manager):
+    def get_queryset(self):
+        return PostQueryset(self.model, using=self._db).published()
+
+
+class Post(PublishedModel):
+    objects = PostQueryset.as_manager()
+    published = PublishedPostManager()
+    title = models.CharField(
+        'Заголовок',
+        max_length=256,
+        blank=False
+    )
+    text = models.TextField('Текст', blank=False)
+    pub_date = models.DateTimeField(
+        'Дата и время публикации',
+        auto_now_add=False,
+        help_text='Если установить дату и '
+                  'время в будущем — можно делать '
+                  'отложенные публикации.'
+    )
+
+    author = models.ForeignKey(
+        User,
+        verbose_name='Автор публикации',
+        on_delete=models.CASCADE,
+        blank=False
+    )
+
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        related_name='posts',
+        verbose_name='Категория',
+        null=True,
+        blank=False
+    )
+    location = models.ForeignKey(
+        Location,
+        on_delete=models.SET_NULL,
+        related_name='posts',
+        verbose_name='Местоположение',
+        null=True
+    )
+
+    class Meta:
+        verbose_name = 'публикация'
+        verbose_name_plural = 'Публикации'
+
+    def __str__(self):
+        return self.title
