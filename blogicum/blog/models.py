@@ -1,7 +1,8 @@
-from core.models import PublishedModel
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils import timezone
+
+from core.models import PublishedModel
 
 User = get_user_model()
 
@@ -45,7 +46,7 @@ class Location(PublishedModel):
         verbose_name_plural = 'Местоположения'
 
     def __str__(self):
-        return self.name21
+        return self.name
 
 
 class PostQueryset(models.QuerySet):
@@ -71,6 +72,7 @@ class Post(PublishedModel):
         blank=False
     )
     text = models.TextField('Текст', blank=False)
+    image = models.ImageField('Фото', upload_to='posts_images', blank=True)
     pub_date = models.DateTimeField(
         'Дата и время публикации',
         auto_now_add=False,
@@ -108,3 +110,17 @@ class Post(PublishedModel):
 
     def __str__(self):
         return self.title
+
+
+class Comments(models.Model):
+    text = models.TextField('Текст комментария')
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        related_name='comments',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    class Meta:
+        ordering = ('created_at',)
