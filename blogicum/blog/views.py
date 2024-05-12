@@ -27,17 +27,13 @@ class PostDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     success_url = reverse_lazy('blog:user')
 
 
-class PostDetailView(DetailView):
+'''class PostDetailView(DetailView):
     model = Post
     template_name = 'blog/post_detail.html'
+    context_object_name = 'post'
+'''
 
-    def test_func(self):
-        post = self.get_object()
-        return self.request.user == post.author
-
-
-
-'''def post_detail(request, id):
+def post_detail(request, id):
     template_name = 'blog/post_detail.html'
     post = get_object_or_404(
         Post.published, pk=id
@@ -45,7 +41,7 @@ class PostDetailView(DetailView):
     context = {
         'post': post,
     }
-    return render(request, template_name, context)'''
+    return render(request, template_name, context)
 
 
 class PostCreateView(LoginRequiredMixin, CreateView):
@@ -67,27 +63,33 @@ class PostUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = 'blog/create.html'
 
 
-def index(request):
+class PostListView(ListView):
+    model = Post
     template_name = 'blog/index.html'
-    post_list = (
-        Post
-        .published
-        .order_by('-pub_date')
-        [:settings.POSTS_ON_PAGE]
-    )
-    context = {
-        'post_list': post_list
-    }
-    return render(request, template_name, context)
+    queryset = Post.published.select_related('author')
+    ordering = ['-pub_date']
+    paginate_by = settings.POSTS_ON_PAGE
 
 
-def category_posts(request, category_slug):
-    template = 'blog/category.html'
-    category = get_object_or_404(
-        Category,
-        slug=category_slug,
-        is_published=True
-    )
-    posts = category.posts(manager='published').all()
-    context = {'category': category, 'post_list': posts}
-    return render(request, template, context)
+class CategoryListView(ListView):
+    model = Category
+    template_name = 'blog/category.html'
+    context_object_name = 'category'
+    paginate_by = 10
+
+    def get_queryset(self):
+        category_slug = self.kwargs.get('category_slug')
+        category = get_object_or_404(Category, slug=category_slug, is_published=True)
+        return category.posts(manager='published').all()
+
+
+@login_required
+def add_comment(request, pk):
+    post = get_object_or_404(Post, pk=pk)
+    form = CommentForm(request.POST)
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.author = request.user
+        comment.post = post
+        comment.save()
+    return redirect('blog:post_detail', pk=pk)
