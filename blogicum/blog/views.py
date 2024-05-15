@@ -18,8 +18,21 @@ class OnlyAuthorMixin(UserPassesTestMixin):
 
 
 class ProfileView(TemplateView):
-    model = User
     template_name = 'blog/profile.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        profile = User.objects.get(username=self.request.user.username)
+        context['profile'] = profile
+        post_list = Post.published.filter(author=profile)
+        context['post_list'] = post_list
+        return context
+
+
+class ProfileEditView(OnlyAuthorMixin, UpdateView):
+    model = User
+    form_class = PostForm
+    template_name = 'blog/user.html'
 
 
 class PostDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
