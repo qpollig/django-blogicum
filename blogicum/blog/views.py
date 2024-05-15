@@ -53,11 +53,13 @@ def post_detail(request, id):
 
 def delete_post(request, id):
     template_name = 'blog/create.html'
-    post = get_object_or_404(Post, id=id)
+    instance = get_object_or_404(Post, id=id)
+    form = PostForm(instance=instance)
+    context = {'form': form}
     if request.method == 'POST':
-        post.delete()
-        return redirect('blog:profile')
-    return render(request, template_name, {'post': post})
+        instance.delete()
+        return redirect('blog:index')
+    return render(request, template_name, context)
 
 
 def edit_post(request, id):
@@ -66,7 +68,7 @@ def edit_post(request, id):
     form = PostForm(request.POST or None, instance=post)
     if form.is_valid():
         form.save()
-        return redirect('post_detail', id=post.id)  # или куда-то еще, куда вы хотите перенаправить после редактирования
+        return redirect('blog:post_detail', id=post.id)
     return render(request, template_name, {'form': form})
 
 
