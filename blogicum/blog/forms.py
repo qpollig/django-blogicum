@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 
-from .models import Category, Comments, Location, Post
+from .models import Category, Comment, Location, Post
 
 
 class PostForm(forms.ModelForm):
@@ -14,5 +14,5 @@ class PostForm(forms.ModelForm):
 
 class CommentForm(forms.ModelForm):
     class Meta:
-        model = Comments
+        model = Comment
         fields = ('text', )

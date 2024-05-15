@@ -40,12 +40,6 @@ class PostDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     success_url = reverse_lazy('blog:user')
 
 
-'''class PostDetailView(DetailView):
-    model = Post
-    template_name = 'blog/post_detail.html'
-    context_object_name = 'post'
-'''
-
 def post_detail(request, id):
     template_name = 'blog/post_detail.html'
     post = get_object_or_404(
@@ -55,6 +49,41 @@ def post_detail(request, id):
         'post': post,
     }
     return render(request, template_name, context)
+
+
+def delete_post(request, id):
+    template_name = 'blog/create.html'
+    post = get_object_or_404(Post, id=id)
+    if request.method == 'POST':
+        post.delete()
+        return redirect('blog:profile')
+    return render(request, template_name, {'post': post})
+
+
+def edit_post(request, id):
+    post = get_object_or_404(Post, id=id)
+    template_name = 'blog/create.html'
+    form = PostForm(request.POST or None, instance=post)
+    if form.is_valid():
+        form.save()
+        return redirect('post_detail', id=post.id)  # или куда-то еще, куда вы хотите перенаправить после редактирования
+    return render(request, template_name, {'form': form})
+
+
+def add_comment(request, id):
+    post = get_object_or_404(Post, id=id)
+    template_name = 'include/comments.html'
+    if request.method == 'POST':
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.post = post
+            comment.author = request.user
+            comment.save()
+            return redirect('post_detail', id=post.id)
+    else:
+        form = CommentForm()
+        return render(request, template_name, {'form': form})
 
 
 class PostCreateView(LoginRequiredMixin, CreateView):

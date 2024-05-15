@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils import timezone
@@ -112,15 +113,29 @@ class Post(PublishedModel):
         return self.title
 
 
-class Comments(models.Model):
-    text = models.TextField('Текст комментария')
+class Comment(PublishedModel):
+    text = models.TextField("Текст")
     post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
         related_name='comments',
+        verbose_name="Пост",
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name="Автор",
+        default=1
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Время создания"
+    )
 
     class Meta:
         ordering = ('created_at',)
+        verbose_name = "Комментарий"
+        verbose_name_plural = "Комментарии"
+
+    def __str__(self):
+        return self.text[:settings.MAX_SELF_COMMENT_LENGTH]
