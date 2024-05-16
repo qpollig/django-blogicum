@@ -113,7 +113,7 @@ class Post(PublishedModel):
         return self.title
 
 
-class Comment(PublishedModel):
+class Comment(models.Model):
     text = models.TextField("Текст")
     post = models.ForeignKey(
         Post,
@@ -125,11 +125,10 @@ class Comment(PublishedModel):
         User,
         on_delete=models.CASCADE,
         verbose_name="Автор",
-        default=1
     )
     created_at = models.DateTimeField(
         auto_now_add=True,
-        verbose_name="Время создания"
+        verbose_name="Дата создания"
     )
 
     class Meta:
