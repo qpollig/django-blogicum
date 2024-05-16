@@ -54,10 +54,10 @@ def create_post(request):
 class PostDetailView(DetailView):
     model = Post
     template_name = 'blog/post_detail.html'
-    pk_url_kwarg = 'post_id'
+    pk_url_kwarg = 'id'
 
     def get_object(self, queryset=None):
-        post = get_object_or_404(Post, pk=self.kwargs['post_id'])
+        post = get_object_or_404(Post, id=self.kwargs['id'])
 
         if not (post.is_published and post.category.is_published
                 and post.pub_date <= timezone.now()):
@@ -71,19 +71,6 @@ class PostDetailView(DetailView):
         context['comments'] = self.object.comments.all().order_by('created_at')
         context['form'] = CommentForm()
         return context
-
-
-def post_detail(request, id):
-    template_name = 'blog/post_detail.html'
-    post = get_object_or_404(
-        Post.published, pk=id
-    )
-    comments = Comment.objects.filter(post=post)
-    context = {
-        'post': post,
-        'comments': comments,
-    }
-    return render(request, template_name, context)
 
 
 def delete_post(request, id):
@@ -111,9 +98,10 @@ class CommentCreateView(OnlyAuthorMixin, CreateView):
     model = Comment
     post = None
     form_class = CommentForm
+    pk_url_kwarg = 'id'
 
     def dispatch(self, request, *args, **kwargs):
-        self.post = get_object_or_404(Post, id=kwargs['post_id'])
+        self.post = get_object_or_404(Post, id=kwargs['id'])
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -123,23 +111,6 @@ class CommentCreateView(OnlyAuthorMixin, CreateView):
 
     def get_success_url(self):
         return reverse('blog:post_detail', kwargs={'id': self.post.id})
-
-
-@login_required
-def add_comment(request, id):
-    post = get_object_or_404(Post, id=id)
-    template_name = 'include/comments.html'
-    if request.method == 'POST':
-        form = CommentForm(request.POST)
-        if form.is_valid():
-            comment = form.save(commit=False)
-            comment.post = post
-            comment.author = request.user
-            comment.save()
-            return redirect('blog:post_detail', id=post.id)
-    else:
-        form = CommentForm()
-    return render(request, template_name, {'form': form})
 
 
 def edit_comment(request, post_id, comment_id):
