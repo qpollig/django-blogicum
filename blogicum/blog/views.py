@@ -48,7 +48,7 @@ def create_post(request):
     else:
         form = PostForm()
         context = {'form': form}
-        return render(request, 'blog/post_edit.html', context)
+        return render(request, 'blog/create.html', context)
 
 
 class PostDetailView(DetailView):
@@ -68,7 +68,7 @@ class PostDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['comments'] = self.object.comments.all().order_by('created_at')
+        context['comments'] = self.object.comments.all().order_by('-created_at')
         context['form'] = CommentForm()
         return context
 
@@ -94,14 +94,33 @@ def edit_post(request, id):
     return render(request, template_name, {'form': form})
 
 
+@login_required
+def add_comment(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    template_name = 'include/comments.html'
+    if request.method == 'POST':
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.post = post
+            comment.author = request.user
+            comment.is_published = True
+            comment.save()
+            return redirect('blog:post_detail', id=post.id)
+    else:
+        form = CommentForm()
+    return render(request, template_name, {'form': form})
+
+
+'''
 class CommentCreateView(OnlyAuthorMixin, CreateView):
     model = Comment
     post = None
     form_class = CommentForm
-    pk_url_kwarg = 'id'
+    pk_url_kwarg = 'post_id'
 
     def dispatch(self, request, *args, **kwargs):
-        self.post = get_object_or_404(Post, id=kwargs['id'])
+        self.post = get_object_or_404(Post, id=kwargs['post_id'])
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -111,6 +130,8 @@ class CommentCreateView(OnlyAuthorMixin, CreateView):
 
     def get_success_url(self):
         return reverse('blog:post_detail', kwargs={'id': self.post.id})
+
+'''
 
 
 def edit_comment(request, post_id, comment_id):
