@@ -1,8 +1,6 @@
 from django import forms
-from django.core.exceptions import ValidationError
-from django.core.mail import send_mail
 
-from .models import Category, Comment, Location, Post, User
+from .models import Comment, Post, User
 
 
 class PostForm(forms.ModelForm):
@@ -22,4 +20,3 @@ class ProfileForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ['username', 'first_name', 'last_name', 'email']
-

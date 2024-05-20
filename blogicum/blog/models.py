@@ -1,8 +1,9 @@
-from core.models import PublishedModel
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils import timezone
+
+from core.models import PublishedModel
 
 User = get_user_model()
 
@@ -107,6 +108,10 @@ class Post(PublishedModel):
     class Meta:
         verbose_name = 'публикация'
         verbose_name_plural = 'Публикации'
+
+    @property
+    def comment_count(self):
+        return self.comments.count()
 
     def __str__(self):
         return self.title

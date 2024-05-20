@@ -2,11 +2,11 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.views.generic import (CreateView, DeleteView, DetailView, ListView,
-                                  TemplateView, UpdateView)
+from django.views.generic import CreateView, DetailView, ListView
 
 from .forms import CommentForm, PostForm, ProfileForm
 from .models import Category, Comment, Post, User
@@ -21,7 +21,7 @@ class OnlyAuthorMixin(UserPassesTestMixin):
 
 def profile(request, username):
     profile = get_object_or_404(User, username=username)
-    posts = Post.published.filter(author=profile.id).order_by('-pub_date')
+    posts = Post.objects.filter(author=profile.id).order_by('-pub_date')
 
     paginator = Paginator(posts, settings.POSTS_ON_PAGE)
     page_number = request.GET.get('page')
@@ -32,7 +32,11 @@ def profile(request, username):
     except EmptyPage:
         page_obj = paginator.page(paginator.num_pages)
 
-    return render(request, 'blog/profile.html', {'profile': profile, 'page_obj': page_obj})
+    return render(
+        request,
+        'blog/profile.html',
+        {'profile': profile, 'page_obj': page_obj}
+    )
 
 
 @login_required
@@ -77,8 +81,11 @@ class PostDetailView(DetailView):
         return post
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['comments'] = self.object.comments.all().order_by('-created_at')
+        context = (super().
+                   get_context_data(**kwargs))
+        context['comments'] = (self.
+                               object.comments.all().
+                               order_by('created_at'))
         context['form'] = CommentForm()
         return context
 
@@ -131,8 +138,14 @@ def edit_comment(request, post_id, comment_id):
             form.save()
             return redirect('blog:post_detail', id=post_id)
     else:
-        form = CommentForm(instance=comment)
-    return render(request, 'blog/comment.html', {'form': form, 'comment': comment})
+        form = CommentForm(
+            instance=comment
+        )
+    return render(
+        request,
+        'blog/comment.html',
+        {'form': form, 'comment': comment}
+    )
 
 
 @login_required
@@ -170,12 +183,18 @@ def category_posts(request, category_slug):
     posts = Post.published.filter(category=category)
 
     paginator = Paginator(posts, settings.POSTS_ON_PAGE)
-    page_number = request.GET.get('page')
+    page_number = (request.
+                   GET.get('page'))
     try:
         page_obj = paginator.page(page_number)
     except PageNotAnInteger:
         page_obj = paginator.page(1)
     except EmptyPage:
-        page_obj = paginator.page(paginator.num_pages)
+        page_obj = (paginator.
+                    page(paginator.num_pages))
 
-    return render(request, 'blog/category.html', {'category': category, 'page_obj': page_obj})
+    return render(
+        request,
+        'blog/category.html',
+        {'category': category, 'page_obj': page_obj}
+    )
