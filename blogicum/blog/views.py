@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.views.generic import (CreateView, DeleteView, DetailView, ListView,
                                   TemplateView, UpdateView)
 
-from .forms import CommentForm, PostForm
+from .forms import CommentForm, PostForm, ProfileForm
 from .models import Category, Comment, Post, User
 
 
@@ -21,20 +21,29 @@ class OnlyAuthorMixin(UserPassesTestMixin):
 
 def profile(request, username):
     profile = get_object_or_404(User, username=username)
-    page_obj = Post.published.filter(author=profile.id)
+    posts = Post.published.filter(author=profile.id).order_by('-pub_date')
+
+    paginator = Paginator(posts, settings.POSTS_ON_PAGE)
+    page_number = request.GET.get('page')
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
     return render(request, 'blog/profile.html', {'profile': profile, 'page_obj': page_obj})
 
 
 @login_required
-def edit_profile(request):
+def edit_profile(request, username):
+    profile = get_object_or_404(User, username=username)
+    template_name = 'blog/user.html'
+    form = ProfileForm(request.POST or None, instance=profile)
     if request.method == 'POST':
-        form = ProfileForm(request.POST, instance=request.user)
-        if form.is_valid():
-            form.save()
-            return redirect('blog:profile', username=request.user.username)
-    else:
-        form = ProfileForm(instance=request.user)
-    return render(request, 'user.html', {'form': form})
+        form.save()
+        return redirect('blog:profile', username=request.user.username)
+    return render(request, template_name, {'form': form})
 
 
 @login_required
@@ -45,7 +54,7 @@ def create_post(request):
             post = form.save(commit=False)
             post.author = request.user
             post.save()
-            return redirect('blog:post_detail', id=post.id)
+            return redirect('blog:profile', username=request.user.username)
     else:
         form = PostForm()
         context = {'form': form}
