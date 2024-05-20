@@ -19,22 +19,22 @@ class OnlyAuthorMixin(UserPassesTestMixin):
         return object.author == self.request.user
 
 
-class ProfileView(TemplateView):
-    template_name = 'blog/profile.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        profile = User.objects.get(username=self.request.user.username)
-        context['profile'] = profile
-        post_list = Post.published.filter(author=profile)
-        context['post_list'] = post_list
-        return context
+def profile(request, username):
+    profile = get_object_or_404(User, username=username)
+    page_obj = Post.published.filter(author=profile.id)
+    return render(request, 'blog/profile.html', {'profile': profile, 'page_obj': page_obj})
 
 
-class ProfileEditView(OnlyAuthorMixin, UpdateView):
-    model = User
-    form_class = PostForm
-    template_name = 'blog/user.html'
+@login_required
+def edit_profile(request):
+    if request.method == 'POST':
+        form = ProfileForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            return redirect('blog:profile', username=request.user.username)
+    else:
+        form = ProfileForm(instance=request.user)
+    return render(request, 'user.html', {'form': form})
 
 
 @login_required
