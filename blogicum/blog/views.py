@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import CreateView, DetailView, ListView
+from django.http import HttpResponseForbidden
 
 from .forms import CommentForm, PostForm, ProfileForm
 from .models import Category, Comment, Post, User
@@ -101,6 +102,7 @@ def delete_post(request, id):
     return render(request, template_name, context)
 
 
+@login_required
 def edit_post(request, id):
     post = get_object_or_404(Post, id=id)
     template_name = 'blog/create.html'
@@ -132,28 +134,30 @@ def add_comment(request, post_id):
 @login_required
 def edit_comment(request, post_id, comment_id):
     comment = get_object_or_404(Comment, id=comment_id)
+    if comment.author != request.user:
+        return HttpResponseForbidden("Вы не можете редактировать этот комментарий.")
+
     if request.method == 'POST':
         form = CommentForm(request.POST, instance=comment)
         if form.is_valid():
             form.save()
             return redirect('blog:post_detail', id=post_id)
     else:
-        form = CommentForm(
-            instance=comment
-        )
-    return render(
-        request,
-        'blog/comment.html',
-        {'form': form, 'comment': comment}
-    )
+        form = CommentForm(instance=comment)
+
+    return render(request, 'blog/comment.html', {'form': form, 'comment': comment})
 
 
 @login_required
 def delete_comment(request, post_id, comment_id):
     comment = get_object_or_404(Comment, id=comment_id)
+    if comment.author != request.user:
+        return HttpResponseForbidden("Вы не можете удалить этот комментарий.")
+
     if request.method == 'POST':
         comment.delete()
         return redirect('blog:post_detail', id=post_id)
+
     return render(request, 'blog/comment.html', {'comment': comment})
 
 
@@ -174,13 +178,13 @@ class PostListView(ListView):
     model = Post
     template_name = 'blog/index.html'
     queryset = Post.published.select_related('author')
-    ordering = ['-pub_date']
+    ordering = ('-pub_date')
     paginate_by = settings.POSTS_ON_PAGE
 
 
 def category_posts(request, category_slug):
-    category = Category.objects.get(slug=category_slug)
-    posts = Post.published.filter(category=category)
+    category = get_object_or_404(Category, slug=category_slug, is_published=True)
+    posts = Post.published.filter(category=category).order_by('-pub_date')
 
     paginator = Paginator(posts, settings.POSTS_ON_PAGE)
     page_number = (request.
