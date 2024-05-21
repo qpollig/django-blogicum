@@ -25,7 +25,10 @@ SECRET_KEY = 'django-insecure-trpp14i-wlkp#j-6atdok=uv-5osb1g+@a$_xj70v5xfh!uccs
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+]
 
 
 # Application definition
@@ -33,6 +36,8 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'pages.apps.PagesConfig',
     'blog.apps.BlogConfig',
+    'core.apps.CoreConfig',
+    'users.apps.UsersConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -40,7 +45,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_bootstrap5',
-    'users.apps.UsersConfig',
 ]
 
 MIDDLEWARE = [
@@ -155,3 +159,5 @@ LOGIN_REDIRECT_URL = 'blog:index'
 LOGIN_URL = 'login'
 
 MEDIA_ROOT = BASE_DIR / 'media'
+
+INTERNAL_IPS = ['127.0.0.1', ]

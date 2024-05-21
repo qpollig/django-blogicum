@@ -2,12 +2,12 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.http import Http404
+from django.db import transaction
+from django.http import Http404, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import CreateView, DetailView, ListView
-from django.http import HttpResponseForbidden
 
 from .forms import CommentForm, PostForm, ProfileForm
 from .models import Category, Comment, Post, User
@@ -97,7 +97,9 @@ def delete_post(request, id):
     form = PostForm(instance=instance)
     context = {'form': form}
     if request.method == 'POST':
-        instance.delete()
+        with transaction.atomic():
+            instance.comments.all().delete()
+            instance.delete()
         return redirect('blog:index')
     return render(request, template_name, context)
 
@@ -135,7 +137,9 @@ def add_comment(request, post_id):
 def edit_comment(request, post_id, comment_id):
     comment = get_object_or_404(Comment, id=comment_id)
     if comment.author != request.user:
-        return HttpResponseForbidden("Вы не можете редактировать этот комментарий.")
+        return HttpResponseForbidden(
+            "Вы не можете редактировать этот комментарий."
+        )
 
     if request.method == 'POST':
         form = CommentForm(request.POST, instance=comment)
@@ -145,7 +149,11 @@ def edit_comment(request, post_id, comment_id):
     else:
         form = CommentForm(instance=comment)
 
-    return render(request, 'blog/comment.html', {'form': form, 'comment': comment})
+    return render(
+        request,
+        'blog/comment.html',
+        {'form': form, 'comment': comment}
+    )
 
 
 @login_required
@@ -183,7 +191,11 @@ class PostListView(ListView):
 
 
 def category_posts(request, category_slug):
-    category = get_object_or_404(Category, slug=category_slug, is_published=True)
+    category = get_object_or_404(
+        Category,
+        slug=category_slug,
+        is_published=True
+    )
     posts = Post.published.filter(category=category).order_by('-pub_date')
 
     paginator = Paginator(posts, settings.POSTS_ON_PAGE)
