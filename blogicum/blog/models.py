@@ -128,7 +128,6 @@ class Comment(PublishedModel):
         User,
         on_delete=models.CASCADE,
         verbose_name="Автор",
-        default=1,
     )
 
     class Meta:

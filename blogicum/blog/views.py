@@ -94,6 +94,8 @@ class PostDetailView(DetailView):
 def delete_post(request, id):
     template_name = 'blog/create.html'
     instance = get_object_or_404(Post, id=id)
+    if instance.author != request.user:
+        return redirect('blog:post_detail', id=instance.id)
     form = PostForm(instance=instance)
     context = {'form': form}
     if request.method == 'POST':
@@ -107,6 +109,8 @@ def delete_post(request, id):
 @login_required
 def edit_post(request, id):
     post = get_object_or_404(Post, id=id)
+    if post.author != request.user:
+        return redirect('blog:post_detail', id=post.id)
     template_name = 'blog/create.html'
     form = PostForm(request.POST or None, instance=post)
     if form.is_valid():
