@@ -150,3 +150,5 @@ dmypy.json
 media/
 /blogicum/static/css/bootstrap.min.css
 HTML/
+
+/blogicum/sent_emails/

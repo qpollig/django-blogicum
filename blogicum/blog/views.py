@@ -20,24 +20,21 @@ class OnlyAuthorMixin(UserPassesTestMixin):
         return object.author == self.request.user
 
 
-def profile(request, username):
-    profile = get_object_or_404(User, username=username)
-    posts = Post.objects.filter(author=profile.id).order_by('-pub_date')
+class ProfileView(ListView):
+    model = Post
+    template_name = 'blog/profile.html'
+    context_object_name = 'page_obj'
+    paginate_by = settings.POSTS_ON_PAGE
 
-    paginator = Paginator(posts, settings.POSTS_ON_PAGE)
-    page_number = request.GET.get('page')
-    try:
-        page_obj = paginator.page(page_number)
-    except PageNotAnInteger:
-        page_obj = paginator.page(1)
-    except EmptyPage:
-        page_obj = paginator.page(paginator.num_pages)
+    def get_queryset(self):
+        profile = get_object_or_404(User, username=self.kwargs['username'])
+        return Post.objects.filter(author=profile.id).order_by('-pub_date')
 
-    return render(
-        request,
-        'blog/profile.html',
-        {'profile': profile, 'page_obj': page_obj}
-    )
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        profile = get_object_or_404(User, username=self.kwargs['username'])
+        context['profile'] = profile
+        return context
 
 
 @login_required
