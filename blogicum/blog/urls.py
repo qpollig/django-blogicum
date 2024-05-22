@@ -33,7 +33,7 @@ urlpatterns = [
     ),
     path(
         'posts/<int:id>/delete/',
-        views.delete_post,
+        views.DeletePostView.as_view(),
         name='delete_post'
     ),
 

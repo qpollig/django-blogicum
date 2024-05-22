@@ -7,7 +7,7 @@ from django.http import Http404, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.views.generic import CreateView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, DetailView, ListView, UpdateView, DeleteView
 
 from .forms import CommentForm, PostForm, ProfileForm
 from .models import Category, Comment, Post, User
@@ -97,19 +97,24 @@ class PostDetailView(DetailView):
         return context
 
 
-def delete_post(request, id):
+class DeletePostView(LoginRequiredMixin, DeleteView):
+    model = Post
     template_name = 'blog/create.html'
-    instance = get_object_or_404(Post, id=id)
-    if instance.author != request.user:
-        return redirect('blog:post_detail', id=instance.id)
-    form = PostForm(instance=instance)
-    context = {'form': form}
-    if request.method == 'POST':
+
+    def get_object(self):
+        return get_object_or_404(Post, id=self.kwargs['id'])
+
+    def get_success_url(self):
+        return reverse_lazy('blog:index')
+
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.author != request.user:
+            return redirect('blog:post_detail', id=instance.id)
         with transaction.atomic():
             instance.comments.all().delete()
             instance.delete()
-        return redirect('blog:index')
-    return render(request, template_name, context)
+        return redirect(self.get_success_url())
 
 
 @login_required
