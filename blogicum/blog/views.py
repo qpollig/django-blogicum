@@ -5,7 +5,7 @@ from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db import transaction
 from django.http import Http404, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.utils import timezone
 from django.views.generic import CreateView, DetailView, ListView, UpdateView, DeleteView
 
@@ -130,58 +130,66 @@ def edit_post(request, id):
     return render(request, template_name, {'form': form})
 
 
-@login_required
-def add_comment(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
+class AddCommentView(CreateView, LoginRequiredMixin):
+    model = Comment
+    form_class = CommentForm
     template_name = 'include/comments.html'
-    if request.method == 'POST':
-        form = CommentForm(request.POST)
-        if form.is_valid():
-            comment = form.save(commit=False)
-            comment.post = post
-            comment.author = request.user
-            comment.is_published = True
-            comment.save()
-            return redirect('blog:post_detail', id=post.id)
-    else:
-        form = CommentForm()
-    return render(request, template_name, {'form': form})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['post'] = get_object_or_404(Post, id=self.kwargs['post_id'])
+        return context
+
+    def form_valid(self, form):
+        post = get_object_or_404(Post, id=self.kwargs['post_id'])
+        comment = form.save(commit=False)
+        comment.post = post
+        comment.author = self.request.user
+        comment.is_published = True
+        comment.save()
+        return redirect('blog:post_detail', id=post.id)
+
+    def get_success_url(self):
+        return reverse_lazy('blog:post_detail', kwargs={'id': self.kwargs['post_id']})
 
 
-@login_required
-def edit_comment(request, post_id, comment_id):
-    comment = get_object_or_404(Comment, id=comment_id)
-    if comment.author != request.user:
-        return HttpResponseForbidden(
-            "Вы не можете редактировать этот комментарий."
-        )
+class EditCommentView(LoginRequiredMixin, UpdateView):
+    model = Comment
+    form_class = CommentForm
+    template_name = 'blog/comment.html'
 
-    if request.method == 'POST':
-        form = CommentForm(request.POST, instance=comment)
-        if form.is_valid():
-            form.save()
-            return redirect('blog:post_detail', id=post_id)
-    else:
-        form = CommentForm(instance=comment)
+    def dispatch(self, request, *args, **kwargs):
+        comment = get_object_or_404(Comment, id=kwargs['comment_id'])
+        if comment.author != request.user:
+            return HttpResponseForbidden(
+                "Вы не можете редактировать этот комментарий."
+            )
+        return super().dispatch(request, *args, **kwargs)
 
-    return render(
-        request,
-        'blog/comment.html',
-        {'form': form, 'comment': comment}
-    )
+    def get_object(self, queryset=None):
+        return get_object_or_404(Comment, id=self.kwargs['comment_id'])
+
+    def get_success_url(self):
+        return reverse('blog:post_detail', kwargs={'id': self.kwargs['post_id']})
 
 
-@login_required
-def delete_comment(request, post_id, comment_id):
-    comment = get_object_or_404(Comment, id=comment_id)
-    if comment.author != request.user:
-        return HttpResponseForbidden("Вы не можете удалить этот комментарий.")
+class DeleteCommentView(LoginRequiredMixin, DeleteView):
+    model = Comment
+    template_name = 'blog/comment.html'
+    context_object_name = 'comment'
 
-    if request.method == 'POST':
-        comment.delete()
-        return redirect('blog:post_detail', id=post_id)
+    def get_object(self, queryset=None):
+        return get_object_or_404(Comment, id=self.kwargs['comment_id'])
 
-    return render(request, 'blog/comment.html', {'comment': comment})
+    def get_success_url(self):
+        return reverse_lazy('blog:post_detail', kwargs={'id': self.kwargs['post_id']})
+
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.author != request.user:
+            return redirect('blog:post_detail', id=self.kwargs['post_id'])
+        instance.delete()
+        return redirect(self.get_success_url())
 
 
 class PostCreateView(LoginRequiredMixin, CreateView):
