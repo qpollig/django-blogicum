@@ -10,7 +10,7 @@ User = get_user_model()
 class Category(PublishedModel):
     title = models.CharField(
         'Заголовок',
-        max_length=256,
+        max_length=settings.MAX_LENGTH,
         blank=False
     )
     description = models.TextField(
@@ -19,7 +19,7 @@ class Category(PublishedModel):
     )
     slug = models.SlugField(
         'Идентификатор',
-        max_length=64,
+        max_length=settings.MAX_LENGTH_SLUG,
         unique=True,
         help_text='Идентификатор страницы для URL; '
                   'разрешены символы латиницы, '
@@ -37,7 +37,7 @@ class Category(PublishedModel):
 class Location(PublishedModel):
     name = models.CharField(
         'Название места',
-        max_length=256,
+        max_length=settings.MAX_LENGTH,
         blank=False
     )
 
@@ -68,7 +68,7 @@ class Post(PublishedModel):
     published = PublishedPostManager()
     title = models.CharField(
         'Заголовок',
-        max_length=256,
+        max_length=settings.MAX_LENGTH,
         blank=False
     )
     text = models.TextField('Текст', blank=False)
