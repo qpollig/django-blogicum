@@ -5,9 +5,10 @@ from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db import transaction
 from django.http import Http404, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse_lazy, reverse
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.views.generic import CreateView, DetailView, ListView, UpdateView, DeleteView
+from django.views.generic import (CreateView, DeleteView, DetailView, ListView,
+                                  UpdateView)
 
 from .forms import CommentForm, PostForm, ProfileForm
 from .models import Category, Comment, Post, User
@@ -117,17 +118,26 @@ class DeletePostView(LoginRequiredMixin, DeleteView):
         return redirect(self.get_success_url())
 
 
-@login_required
-def edit_post(request, id):
-    post = get_object_or_404(Post, id=id)
-    if post.author != request.user:
-        return redirect('blog:post_detail', id=post.id)
+class EditPostView(LoginRequiredMixin, UpdateView):
+    model = Post
+    form_class = PostForm
     template_name = 'blog/create.html'
-    form = PostForm(request.POST or None, instance=post)
-    if form.is_valid():
-        form.save()
-        return redirect('blog:post_detail', id=post.id)
-    return render(request, template_name, {'form': form})
+
+    def dispatch(self, request, *args, **kwargs):
+        post = get_object_or_404(Post, id=kwargs['id'])
+        if self.request.user.is_authenticated:
+            if post.author != request.user:
+                return HttpResponseForbidden(
+                    "Вы не можете редактировать этот пост."
+                )
+            return super().dispatch(request, *args, **kwargs)
+        return reverse('blog:post_detail', kwargs={'id': self.kwargs['id']})
+
+    def get_object(self, queryset=None):
+        return get_object_or_404(Post, id=self.kwargs['id'])
+
+    def get_success_url(self):
+        return reverse('blog:post_detail', kwargs={'id': self.kwargs['id']})
 
 
 class AddCommentView(CreateView, LoginRequiredMixin):
@@ -145,7 +155,6 @@ class AddCommentView(CreateView, LoginRequiredMixin):
         comment = form.save(commit=False)
         comment.post = post
         comment.author = self.request.user
-        comment.is_published = True
         comment.save()
         return redirect('blog:post_detail', id=post.id)
 
@@ -160,6 +169,7 @@ class EditCommentView(LoginRequiredMixin, UpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         comment = get_object_or_404(Comment, id=kwargs['comment_id'])
+
         if comment.author != request.user:
             return HttpResponseForbidden(
                 "Вы не можете редактировать этот комментарий."

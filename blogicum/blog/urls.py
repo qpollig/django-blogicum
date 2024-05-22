@@ -28,7 +28,7 @@ urlpatterns = [
     ),
     path(
         'posts/<int:id>/edit/',
-        views.edit_post,
+        views.EditPostView.as_view(),
         name='edit_post'
     ),
     path(
