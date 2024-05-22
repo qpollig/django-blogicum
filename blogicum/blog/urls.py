@@ -60,7 +60,7 @@ urlpatterns = [
     ),
     path(
         'profile/edit/<username>/',
-        views.edit_profile,
+        views.EditProfileView.as_view(),
         name='edit_profile'
     ),
 

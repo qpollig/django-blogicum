@@ -7,7 +7,8 @@ from django.http import Http404, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.views.generic import CreateView, DetailView, ListView
+from django.views.generic import CreateView, DetailView, ListView, UpdateView
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 from .forms import CommentForm, PostForm, ProfileForm
 from .models import Category, Comment, Post, User
@@ -37,15 +38,26 @@ class ProfileView(ListView):
         return context
 
 
-@login_required
-def edit_profile(request, username):
-    profile = get_object_or_404(User, username=username)
+from django.contrib.auth.mixins import LoginRequiredMixin
+
+class EditProfileView(LoginRequiredMixin, UpdateView):
+    model = User
+    form_class = ProfileForm
     template_name = 'blog/user.html'
-    form = ProfileForm(request.POST or None, instance=profile)
-    if request.method == 'POST':
+
+    def get_object(self, queryset=None):
+        if self.request.user.is_authenticated:
+            return self.request.user
+        return None
+
+    def form_valid(self, form):
         form.save()
-        return redirect('blog:profile', username=request.user.username)
-    return render(request, template_name, {'form': form})
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        if self.request.user.is_authenticated:
+            return reverse_lazy('blog:profile', kwargs={'username': self.request.user.username})
+        return reverse_lazy('login')
 
 
 @login_required
