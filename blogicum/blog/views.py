@@ -8,7 +8,6 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
-from django.contrib.auth.mixins import LoginRequiredMixin
 
 from .forms import CommentForm, PostForm, ProfileForm
 from .models import Category, Comment, Post, User
@@ -38,8 +37,6 @@ class ProfileView(ListView):
         return context
 
 
-from django.contrib.auth.mixins import LoginRequiredMixin
-
 class EditProfileView(LoginRequiredMixin, UpdateView):
     model = User
     form_class = ProfileForm
@@ -60,19 +57,19 @@ class EditProfileView(LoginRequiredMixin, UpdateView):
         return reverse_lazy('login')
 
 
-@login_required
-def create_post(request):
-    if request.method == 'POST':
-        form = PostForm(request.POST, request.FILES)
-        if form.is_valid():
-            post = form.save(commit=False)
-            post.author = request.user
-            post.save()
-            return redirect('blog:profile', username=request.user.username)
-    else:
-        form = PostForm()
-        context = {'form': form}
-        return render(request, 'blog/create.html', context)
+class CreatePostView(LoginRequiredMixin, CreateView):
+    model = Post
+    form_class = PostForm
+    template_name = 'blog/create.html'
+
+    def form_valid(self, form):
+        post = form.save(commit=False)
+        post.author = self.request.user
+        post.save()
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('blog:profile', kwargs={'username': self.request.user.username})
 
 
 class PostDetailView(DetailView):
