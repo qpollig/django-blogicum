@@ -213,27 +213,18 @@ class PostListView(ListView):
     paginate_by = settings.POSTS_ON_PAGE
 
 
-def category_posts(request, category_slug):
-    category = get_object_or_404(
-        Category,
-        slug=category_slug,
-        is_published=True
-    )
-    posts = Post.published.filter(category=category).order_by('-pub_date')
+class CategoryPostsView(ListView):
+    model = Post
+    template_name = 'blog/category.html'
+    context_object_name = 'page_obj'
+    paginate_by = settings.POSTS_ON_PAGE
 
-    paginator = Paginator(posts, settings.POSTS_ON_PAGE)
-    page_number = (request.
-                   GET.get('page'))
-    try:
-        page_obj = paginator.page(page_number)
-    except PageNotAnInteger:
-        page_obj = paginator.page(1)
-    except EmptyPage:
-        page_obj = (paginator.
-                    page(paginator.num_pages))
+    def get_queryset(self):
+        category = get_object_or_404(Category, slug=self.kwargs['category_slug'], is_published=True)
+        return Post.published.filter(category=category).order_by('-pub_date')
 
-    return render(
-        request,
-        'blog/category.html',
-        {'category': category, 'page_obj': page_obj}
-    )
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        category = get_object_or_404(Category, slug=self.kwargs['category_slug'], is_published=True)
+        context['category'] = category
+        return context

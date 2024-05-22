@@ -12,7 +12,7 @@ urlpatterns = [
     ),
     path(
         'category/<slug:category_slug>/',
-        views.category_posts,
+        views.CategoryPostsView.as_view(),
         name='category_posts'
     ),
 
