@@ -135,7 +135,7 @@ class EditPostView(LoginRequiredMixin, UpdateView):
         return reverse('blog:post_detail', kwargs={'id': self.kwargs['id']})
 
 
-class AddCommentView(CreateView, LoginRequiredMixin):
+class AddCommentView(LoginRequiredMixin, CreateView):
     model = Comment
     form_class = CommentForm
     template_name = 'include/comments.html'
