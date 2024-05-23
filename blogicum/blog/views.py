@@ -124,14 +124,9 @@ class EditPostView(LoginRequiredMixin, UpdateView):
     template_name = 'blog/create.html'
 
     def dispatch(self, request, *args, **kwargs):
-        post = get_object_or_404(Post, id=kwargs['id'])
-        if self.request.user.is_authenticated:
-            if post.author != request.user:
-                return HttpResponseForbidden(
-                    "Вы не можете редактировать этот пост."
-                )
-            return super().dispatch(request, *args, **kwargs)
-        return reverse('blog:post_detail', kwargs={'id': self.kwargs['id']})
+        if self.get_object().author != request.user:
+            return redirect("blog:post_detail", id=self.kwargs['id'])
+        return super().dispatch(request, *args, kwargs)
 
     def get_object(self, queryset=None):
         return get_object_or_404(Post, id=self.kwargs['id'])
@@ -169,7 +164,6 @@ class EditCommentView(LoginRequiredMixin, UpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         comment = get_object_or_404(Comment, id=kwargs['comment_id'])
-
         if comment.author != request.user:
             return HttpResponseForbidden(
                 "Вы не можете редактировать этот комментарий."
