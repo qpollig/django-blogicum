@@ -53,7 +53,9 @@ class ProfileView(ListView):
             User,
             username=self.kwargs[self.pk_url_kwarg]
         )
-        return Post.objects.filter(author=profile.id).order_by('-pub_date')
+        if self.kwargs[self.pk_url_kwarg] == profile.username:
+            return Post.objects.filter(author=profile.id).order_by('-pub_date')
+        Post.published.filter(author=profile.id).order_by('-pub_date')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
