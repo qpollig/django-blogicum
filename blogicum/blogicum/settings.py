@@ -37,7 +37,6 @@ INSTALLED_APPS = [
     'pages.apps.PagesConfig',
     'blog.apps.BlogConfig',
     'core.apps.CoreConfig',
-    'users.apps.UsersConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -151,8 +150,6 @@ MAX_SELF_COMMENT_LENGTH = 100
 MAX_LENGTH = 256
 
 MAX_LENGTH_SLUG = 64
-
-AUTH_USER_MODEL = 'users.MyUser'
 
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 
