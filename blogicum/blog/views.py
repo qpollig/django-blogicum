@@ -29,9 +29,10 @@ class CommentMixin:
 
 class CommentDeleteEditMixin(CommentMixin):
     template_name = 'blog/comment.html'
+    pk_url_kwarg = 'comment_id'
 
     def get_object(self, queryset=None):
-        return get_object_or_404(Comment, id=self.kwargs['comment_id'])
+        return get_object_or_404(Comment, id=self.kwargs[self.pk_url_kwarg])
 
     def get_success_url(self):
         return reverse(
