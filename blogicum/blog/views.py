@@ -49,12 +49,18 @@ class ProfileView(ListView):
     pk_url_kwarg = 'username'
 
     def get_queryset(self):
-        profile = get_object_or_404(User, username=self.kwargs[self.pk_url_kwarg])
+        profile = get_object_or_404(
+            User,
+            username=self.kwargs[self.pk_url_kwarg]
+        )
         return Post.objects.filter(author=profile.id).order_by('-pub_date')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        profile = get_object_or_404(User, username=self.kwargs[self.pk_url_kwarg])
+        profile = get_object_or_404(
+            User,
+            username=self.kwargs[self.pk_url_kwarg]
+        )
         context['profile'] = profile
         return context
 
