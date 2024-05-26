@@ -16,6 +16,7 @@ class PostMixin:
     model = Post
     form_class = PostForm
     template_name = 'blog/create.html'
+    pk_url_kwarg = 'id'
 
     def get_success_url(self):
         return reverse_lazy('blog:post_detail', kwargs={'id': self.object.pk})
@@ -111,10 +112,9 @@ class CreatePostView(PostMixin, LoginRequiredMixin, CreateView):
 
 class PostDetailView(PostMixin, DetailView):
     template_name = 'blog/post_detail.html'
-    pk_url_kwarg = 'id'
 
     def get_object(self, queryset=None):
-        post = get_object_or_404(Post, id=self.kwargs['id'])
+        post = get_object_or_404(Post, id=self.kwargs[self.pk_url_kwarg])
 
         if not (post.is_published and post.category.is_published
                 and post.pub_date <= timezone.now()):
@@ -136,7 +136,7 @@ class PostDetailView(PostMixin, DetailView):
 class DeletePostView(PostMixin, LoginRequiredMixin, DeleteView):
 
     def get_object(self):
-        return get_object_or_404(Post, id=self.kwargs['id'])
+        return get_object_or_404(Post, id=self.kwargs[self.pk_url_kwarg])
 
     def get_success_url(self):
         return reverse_lazy('blog:index')
@@ -146,7 +146,6 @@ class DeletePostView(PostMixin, LoginRequiredMixin, DeleteView):
         if instance.author != request.user:
             return redirect('blog:post_detail', id=instance.id)
         with transaction.atomic():
-            instance.comments.all().delete()
             instance.delete()
         return redirect(self.get_success_url())
 
@@ -157,14 +156,14 @@ class EditPostView(PostMixin, LoginRequiredMixin, UpdateView):
         if self.get_object().author != request.user:
             return redirect(
                 "blog:post_detail",
-                id=self.kwargs['id']
+                id=self.kwargs[self.pk_url_kwarg]
             )
         return super().dispatch(request, *args, kwargs)
 
     def get_object(self, queryset=None):
         return get_object_or_404(
             Post,
-            id=self.kwargs['id']
+            id=self.kwargs[self.pk_url_kwarg]
         )
 
 
@@ -197,7 +196,7 @@ class EditCommentView(
 ):
 
     def dispatch(self, request, *args, **kwargs):
-        comment = get_object_or_404(Comment, id=kwargs['comment_id'])
+        comment = get_object_or_404(Comment, id=kwargs[self.pk_url_kwarg])
         if comment.author != request.user:
             return HttpResponseForbidden(
                 "Вы не можете редактировать этот комментарий."
@@ -243,11 +242,12 @@ class CategoryPostsView(ListView):
     template_name = 'blog/category.html'
     context_object_name = 'page_obj'
     paginate_by = settings.POSTS_ON_PAGE
+    slug_url_kwarg = 'category_slug'
 
     def get_queryset(self):
         category = get_object_or_404(
             Category,
-            slug=self.kwargs['category_slug'],
+            slug=self.kwargs[self.slug_url_kwarg],
             is_published=True
         )
         return (Post.published.filter(
